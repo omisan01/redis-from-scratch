@@ -1,5 +1,5 @@
 const net = require("net");
-const { parseResp } = require("./resp")
+const { parseResp, encodeResp } = require("./resp")
 const PORT = 6379
 
 const server = net.createServer((socket) => {
@@ -48,16 +48,18 @@ const server = net.createServer((socket) => {
     }
 
     const sendError = (error, closeSocket = true) => {
+        const encoded = encodeResp("error", error);
         if (closeSocket) {
             isClosed = true
-            socket.end(`-ERR ${error}\r\n`)
+            socket.end(encoded)
         } else {
-            socket.write(`-ERR ${error}\r\n`)
+            socket.write(encoded)
         }
     }
 
     const sendSuccessfulResp = (resp) => {
-        socket.write(`+${resp.value}\r\n`)
+        const encoded = encodeResp(resp.type, resp.value);
+        socket.write(encoded)
     }
 
     const executeCommand = (args) => {
@@ -66,16 +68,43 @@ const server = net.createServer((socket) => {
             value: "empty command"
         }
         const command = args[0].toUpperCase();
-        if (command === "PING") {
-            return {
-                type: "simpleString",
-                value: "PONG"
-            }
-        } else {
-            return {
-                type: "error",
-                value: "unknown command"
-            }
+        const commandArgs = args.slice(1);
+
+        switch (command) {
+            case "PING":
+                if (commandArgs.length === 0) {
+                    return {
+                        type: "simpleString",
+                        value: "PONG"
+                    }
+                } else if (commandArgs.length > 1) {
+                    return {
+                        type: "error",
+                        value: "wrong number of arguments for 'ping' command"
+                    }
+                }
+                return {
+                    type: "bulkString",
+                    value: commandArgs[0]
+                }
+
+            case "ECHO":
+                if (commandArgs.length !== 1) {
+                    return {
+                        type: "error",
+                        value: "wrong number of arguments for 'echo' command"
+                    }
+                }
+                return {
+                    type: "bulkString",
+                    value: commandArgs[0]
+                }
+
+            default:
+                return {
+                    type: "error",
+                    value: "unknown command"
+                }
         }
     }
 
@@ -89,7 +118,7 @@ const server = net.createServer((socket) => {
 })
 
 if (require.main === module) {
-    server.listen(PORT, "localhost", () => {
+    server.listen(PORT, "0.0.0.0", () => {
         console.log("Listening to port 6379")
     })
 }

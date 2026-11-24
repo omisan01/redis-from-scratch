@@ -49,6 +49,9 @@ const extractArrayLen = (header) => {
 }
 
 const extractBulkString = (buffer, offset) => {
+    if (offset >= buffer.length) {
+        return null;
+    }
     if (buffer[offset] === 36) {
         const nextCRLF = buffer.indexOf("\r\n", offset);
         if (nextCRLF === -1) return null
@@ -84,4 +87,37 @@ const validateLength = (length) => {
     return !/^\d+$/.test(length)
 }
 
-module.exports = { parseResp }
+const encodeResp = (type, value) => {
+    let val = Buffer.alloc(0)
+    switch (type) {
+        case "simpleString":
+            val = Buffer.from(`+${value}\r\n`)
+            break;
+
+        case "bulkString":
+            const convertedVal = Buffer.from(value, "utf8")
+            const length = convertedVal.byteLength;
+            val = Buffer.concat([Buffer.from(`$${length}\r\n`),
+                convertedVal,
+            Buffer.from("\r\n")])
+            break;
+
+        case "integer":
+            if (typeof (value) !== "number" || !Number.isSafeInteger(value)) {
+                throw new TypeError("Invalid RESP integer");
+            }
+            val = Buffer.from(`:${value}\r\n`)
+            break;
+
+        case "error":
+            val = Buffer.from(`-ERR ${value}\r\n`)
+            break
+
+        default:
+            throw new TypeError("Unsupported RESP response type");
+    }
+
+    return val
+}
+
+module.exports = { parseResp, encodeResp }
