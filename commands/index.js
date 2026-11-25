@@ -1,5 +1,9 @@
 const pingHandler = require("./ping");
 const echoHandler = require("./echo");
+const setHandler = require("./set")
+const getHandler = require("./get")
+const deleteHandler = require("./delete")
+const existsHandler = require("./exists")
 
 const commands = {
     PING: {
@@ -8,6 +12,22 @@ const commands = {
     },
     ECHO: {
         handler: echoHandler,
+        arity: [1, 1]
+    },
+    SET: {
+        handler: setHandler,
+        arity: [2, 2]
+    },
+    GET: {
+        handler: getHandler,
+        arity: [1, 1]
+    },
+    DEL: {
+        handler: deleteHandler,
+        arity: [1, 1]
+    },
+    EXISTS: {
+        handler: existsHandler,
         arity: [1, 1]
     }
 }
