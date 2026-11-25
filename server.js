@@ -1,5 +1,6 @@
 const net = require("net");
 const { parseResp, encodeResp } = require("./resp")
+const commands = require("./commands/index")
 const PORT = 6379
 
 const server = net.createServer((socket) => {
@@ -26,19 +27,27 @@ const server = net.createServer((socket) => {
                 if (!parsedReqRes) break;
 
                 if (parsedReqRes.error) {
-                    sendError(parsedReqRes.error)
+                    sendError(`ERR ${parsedReqRes.error}`)
                     return;
                 }
 
-                const response = executeCommand(parsedReqRes.args);
+                incomingBuffer = incomingBuffer.subarray(parsedReqRes.bytesConsumed);
 
-                if (response.type === "error") {
-                    sendError(response.value, false)
-                } else {
-                    sendSuccessfulResp(response)
+                try {
+                    const response = executeCommand(parsedReqRes.args);
+
+                    if (response.type === "error") {
+                        sendError(`ERR ${response.value}`, false)
+                    } else {
+                        sendSuccessfulResp(response)
+                    }
+
+                } catch (e) {
+                    console.error("Command execution failed:", e);
+                    sendError("ERR internal server error", false);
                 }
 
-                incomingBuffer = incomingBuffer.subarray(parsedReqRes.bytesConsumed);
+
             }
         } catch (err) {
             console.error("Handler error:", err.message);
@@ -67,45 +76,28 @@ const server = net.createServer((socket) => {
             type: "error",
             value: "empty command"
         }
-        const command = args[0].toUpperCase();
+        const commandName = args[0].toString("ascii").toUpperCase();
+        const command = commands[commandName]
+        if (!command) {
+            return {
+                type: "error",
+                value: `unknown command '${commandName}'`
+            }
+        }
         const commandArgs = args.slice(1);
 
-        switch (command) {
-            case "PING":
-                if (commandArgs.length === 0) {
-                    return {
-                        type: "simpleString",
-                        value: "PONG"
-                    }
-                } else if (commandArgs.length > 1) {
-                    return {
-                        type: "error",
-                        value: "wrong number of arguments for 'ping' command"
-                    }
-                }
-                return {
-                    type: "bulkString",
-                    value: commandArgs[0]
-                }
-
-            case "ECHO":
-                if (commandArgs.length !== 1) {
-                    return {
-                        type: "error",
-                        value: "wrong number of arguments for 'echo' command"
-                    }
-                }
-                return {
-                    type: "bulkString",
-                    value: commandArgs[0]
-                }
-
-            default:
-                return {
-                    type: "error",
-                    value: "unknown command"
-                }
+        if (commandArgs.length < command.arity[0] || commandArgs.length > command.arity[1]) {
+            return {
+                type: "error",
+                value: `wrong number of arguments for '${commandName.toLowerCase()}' command`
+            }
         }
+
+        const response = command.handler(commandArgs)
+
+
+
+        return response
     }
 
     socket.on("close", () => {
