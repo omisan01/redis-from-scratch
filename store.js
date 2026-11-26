@@ -24,4 +24,12 @@ const exists = (key) => {
     return data.has(key)
 }
 
-module.exports = { set, get, del, exists }
+const keys = () => {
+    return Array.from(data.keys())
+}
+
+const dbSize = () => {
+    return data.size
+}
+
+module.exports = { set, get, del, exists, keys, dbSize }

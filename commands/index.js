@@ -4,6 +4,8 @@ const setHandler = require("./set")
 const getHandler = require("./get")
 const deleteHandler = require("./delete")
 const existsHandler = require("./exists")
+const keysHandler = require("./keys")
+const dbSizeHandler = require("./dbsize")
 
 const commands = {
     PING: {
@@ -29,6 +31,14 @@ const commands = {
     EXISTS: {
         handler: existsHandler,
         arity: [1, 1]
+    },
+    KEYS: {
+        handler: keysHandler,
+        arity: [1, 1]
+    },
+    DBSIZE: {
+        handler: dbSizeHandler,
+        arity: [0, 0]
     }
 }
 
