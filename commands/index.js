@@ -6,6 +6,12 @@ const deleteHandler = require("./delete")
 const existsHandler = require("./exists")
 const keysHandler = require("./keys")
 const dbSizeHandler = require("./dbsize")
+const expireHandler = require("./expire")
+const ttlHandler = require("./ttl")
+const pttlHandler = require("./pttl")
+const pexpireHandler = require("./pexpire")
+const persistHandler = require("./persist")
+
 
 const commands = {
     PING: {
@@ -18,7 +24,7 @@ const commands = {
     },
     SET: {
         handler: setHandler,
-        arity: [2, 2]
+        arity: [2, 4]
     },
     GET: {
         handler: getHandler,
@@ -39,6 +45,26 @@ const commands = {
     DBSIZE: {
         handler: dbSizeHandler,
         arity: [0, 0]
+    },
+    EXPIRE: {
+        handler: expireHandler,
+        arity: [2, 2]
+    },
+    TTL: {
+        handler: ttlHandler,
+        arity: [1, 1]
+    },
+    PTTL: {
+        handler: pttlHandler,
+        arity: [1, 1]
+    },
+    PEXPIRE: {
+        handler: pexpireHandler,
+        arity: [2, 2]
+    },
+    PERSIST: {
+        handler: persistHandler,
+        arity: [1, 1]
     }
 }
 
